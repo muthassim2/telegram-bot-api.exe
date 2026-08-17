@@ -1,0 +1,42 @@
+name: Build Telegram Bot API Server (Windows x64)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Clone telegram-bot-api source
+        run: git clone --recursive https://github.com/tdlib/telegram-bot-api.git
+
+      - name: Setup vcpkg
+        run: |
+          cd telegram-bot-api
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+
+      - name: Install dependencies
+        run: |
+          cd telegram-bot-api\vcpkg
+          .\vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows
+
+      - name: Configure with CMake
+        run: |
+          cd telegram-bot-api
+          mkdir build
+          cd build
+          cmake -A x64 -DCMAKE_INSTALL_PREFIX:PATH=.. -DCMAKE_TOOLCHAIN_FILE:FILEPATH=..\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+
+      - name: Build
+        run: |
+          cd telegram-bot-api\build
+          cmake --build . --target install --config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-bot-api-windows-x64
+          path: telegram-bot-api\bin\telegram-bot-api.exe
+          retention-days: 30
